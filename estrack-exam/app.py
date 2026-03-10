@@ -11,6 +11,38 @@ from flask import Flask, render_template, request, redirect, session
 import random
 import os
 
+LEADERBOARD_FILE = "leaderboard.txt"
+
+
+def save_score(name, score):
+
+    with open(LEADERBOARD_FILE, "a") as f:
+        f.write(f"{name},{score}/25\n")
+
+
+def load_leaderboard():
+
+    results = []
+
+    if os.path.exists(LEADERBOARD_FILE):
+
+        with open(LEADERBOARD_FILE) as f:
+
+            for line in f:
+
+                try:
+
+                    name,score = line.strip().split(",")
+
+                    results.append((name,int(score)))
+
+                except:
+                    pass
+
+    results.sort(key=lambda x: x[1], reverse=True)
+
+    return results[:10]
+
 app = Flask(__name__)
 app.secret_key = "estrack_exam_secret"
 
