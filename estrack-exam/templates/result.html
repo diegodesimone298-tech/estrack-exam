@@ -16,7 +16,7 @@ font-family:Arial;
 .container{
 width:900px;
 margin:auto;
-padding-top:80px;
+padding-top:60px;
 }
 
 .score{
@@ -29,7 +29,7 @@ max-height:400px;
 overflow-y:auto;
 border:1px solid white;
 padding:20px;
-margin-bottom:30px;
+margin-bottom:40px;
 }
 
 .block{
@@ -39,6 +39,24 @@ margin-bottom:30px;
 hr{
 border:0;
 border-top:1px solid #888;
+}
+
+input{
+padding:10px;
+font-size:16px;
+}
+
+button{
+padding:10px 20px;
+font-size:16px;
+background:#0c3c5c;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+button:hover{
+background:#145d8a;
 }
 
 </style>
@@ -95,6 +113,30 @@ Score: {{score}} / 25
 </div>
 
 <hr>
+
+{% endfor %}
+
+</div>
+
+
+<h2>Submit Score</h2>
+
+<form method="POST">
+
+<input name="name" placeholder="Enter your name">
+
+<button type="submit">Submit</button>
+
+</form>
+
+
+<h2>Leaderboard</h2>
+
+<div class="scroll">
+
+{% for name,score in leaderboard %}
+
+<p>{{name}} — {{score}} / 25</p>
 
 {% endfor %}
 
