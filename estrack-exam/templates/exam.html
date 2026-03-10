@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>ESTRACK Exam</title>
+
+<style>
+
+body{
+background:#061926;
+color:white;
+font-family:Arial;
+}
+
+.container{
+width:900px;
+margin:auto;
+padding-top:120px;
+}
+
+.question{
+font-size:22px;
+margin-bottom:40px;
+}
+
+button{
+display:block;
+width:100%;
+margin:10px 0;
+padding:15px;
+font-size:16px;
+background:#0c3c5c;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+button:hover{
+background:#145d8a;
+}
+
+.progress{
+margin-bottom:40px;
+font-size:18px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="progress">
+Question {{number}} / 25
+</div>
+
+<div class="question">
+{{question}}
+</div>
+
+<form method="POST">
+
+{% for opt in options %}
+
+<button name="answer" value="{{opt}}">
+{{opt}}
+</button>
+
+{% endfor %}
+
+</form>
+
+</div>
+
+</body>
+</html>
