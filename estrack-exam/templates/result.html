@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Exam Result</title>
+
+<style>
+
+body{
+background:#061926;
+color:white;
+font-family:Arial;
+}
+
+.container{
+width:900px;
+margin:auto;
+padding-top:80px;
+}
+
+.score{
+font-size:32px;
+margin-bottom:30px;
+}
+
+.scroll{
+max-height:400px;
+overflow-y:auto;
+border:1px solid white;
+padding:20px;
+margin-bottom:30px;
+}
+
+.block{
+margin-bottom:30px;
+}
+
+hr{
+border:0;
+border-top:1px solid #888;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="score">
+
+{% if passed %}
+
+<h1>FINAL RESULT: PASS</h1>
+
+{% else %}
+
+<h1>FINAL RESULT: FAIL</h1>
+
+{% endif %}
+
+Score: {{score}} / 25
+
+</div>
+
+
+<h2>Failed Questions Review</h2>
+
+<div class="scroll">
+
+{% for q in failed %}
+
+<div class="block">
+
+<b>Question:</b><br>
+{{q.question}}
+
+<br><br>
+
+<b>Your answer:</b><br>
+{{q.your}}
+
+<br><br>
+
+<b>Correct answer:</b><br>
+{{q.correct}}
+
+<br><br>
+
+<b>Explanation:</b><br>
+{{q.explanation}}
+
+</div>
+
+<hr>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+</body>
+</html>
