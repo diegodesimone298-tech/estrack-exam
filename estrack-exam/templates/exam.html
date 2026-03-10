@@ -1,1 +1,56 @@
+<html>
+
+<head>
+
+<style>
+
+body{
+background:#061926;
+color:white;
+font-family:Arial;
+}
+
+.container{
+width:800px;
+margin:auto;
+padding-top:100px;
+}
+
+button{
+display:block;
+width:100%;
+margin:10px 0;
+padding:12px;
+font-size:16px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Question {{number}}</h2>
+
+<p>{{question}}</p>
+
+<form method="POST">
+
+{% for opt in options %}
+
+<button name="answer" value="{{opt}}">
+{{opt}}
+</button>
+
+{% endfor %}
+
+</form>
+
+</div>
+
+</body>
+
+</html>
 
