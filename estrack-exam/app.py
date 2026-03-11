@@ -310,15 +310,19 @@ questions = [
 
 ]
 
-TOTAL_QUESTIONS=len(questions)
+TOTAL_QUESTIONS = len(questions)
+
+# ---------------- ROUTES ----------------
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
+
 @app.route("/start")
 def start():
 
+    # reset any previous session
     session.clear()
 
     session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
@@ -328,52 +332,63 @@ def start():
 
     return redirect("/exam")
 
+
 @app.route("/exam", methods=["GET","POST"])
 def exam():
 
+    # prevent invalid sessions
     if "questions" not in session:
         return redirect("/start")
 
-    if request.method=="POST":
+    if request.method == "POST":
 
-        choice=request.form["answer"]
-        q=session["questions"][session["index"]]
+        choice = request.form["answer"]
+        q = session["questions"][session["index"]]
 
-        if choice==q["correct"]:
-            session["score"]+=1
+        if choice == q["correct"]:
+            session["score"] += 1
         else:
-            session["failed"].append({
-                "question":q["question"],
-                "your":choice,
-                "correct":q["correct"],
-                "explanation":q["explanation"]
+            failed = session["failed"]
+
+            failed.append({
+                "question": q["question"],
+                "your": choice,
+                "correct": q["correct"],
+                "explanation": q["explanation"]
             })
 
-        session["index"]+=1
+            session["failed"] = failed
 
-    if session["index"]>=TOTAL_QUESTIONS:
+        session["index"] += 1
+
+    # exam finished
+    if session["index"] >= TOTAL_QUESTIONS:
         return redirect("/result")
 
-    q=session["questions"][session["index"]]
+    q = session["questions"][session["index"]]
 
-    options=q["options"].copy()
+    options = q["options"].copy()
     random.shuffle(options)
 
     return render_template(
         "exam.html",
-        number=session["index"]+1,
+        number=session["index"] + 1,
         total=TOTAL_QUESTIONS,
         question=q["question"],
         options=options
     )
 
+
 @app.route("/result")
 def result():
 
-    score=session["score"]
-    failed=session["failed"]
+    if "score" not in session:
+        return redirect("/")
 
-    passed=score/TOTAL_QUESTIONS>=PASS_THRESHOLD
+    score = session["score"]
+    failed = session["failed"]
+
+    passed = score / TOTAL_QUESTIONS >= PASS_THRESHOLD
 
     return render_template(
         "result.html",
@@ -383,5 +398,8 @@ def result():
         failed=failed
     )
 
-if __name__=="__main__":
+
+# ---------------- SERVER START ----------------
+
+if __name__ == "__main__":
     app.run()
