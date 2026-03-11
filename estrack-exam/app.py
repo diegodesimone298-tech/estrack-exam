@@ -316,18 +316,23 @@ TOTAL_QUESTIONS=len(questions)
 def index():
     return render_template("index.html")
 
-@app.route("/start")
+@@app.route("/start")
 def start():
 
-    session["questions"]=random.sample(questions,TOTAL_QUESTIONS)
-    session["index"]=0
-    session["score"]=0
-    session["failed"]=[]
+    session.clear()
+
+    session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
+    session["index"] = 0
+    session["score"] = 0
+    session["failed"] = []
 
     return redirect("/exam")
 
-@app.route("/exam",methods=["GET","POST"])
+@app.route("/exam", methods=["GET","POST"])
 def exam():
+
+    if "questions" not in session:
+        return redirect("/start")
 
     if request.method=="POST":
 
