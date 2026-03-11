@@ -316,7 +316,7 @@ TOTAL_QUESTIONS=len(questions)
 def index():
     return render_template("index.html")
 
-@@app.route("/start")
+@app.route("/start")
 def start():
 
     session.clear()
