@@ -144,9 +144,9 @@ questions = [
 "question":"Correct Kiruna uplink path:",
 "options":[
 "TCU → IFM1 → AULS → SSPA → Polarizer → Antenna",
-"IFM1 → TCU → AULS → SSPA",
-"TCU → AULS → IFM1 → SSPA",
-"TCU → IFM1 → SSPA → AULS"
+"IFM1 → TCU → AULS → Polarizer → SSPA → Antenna",
+"TCU → AULS → IFM1 → SSPA → Polarizer → Antenna",
+"TCU → IFM1 → SSPA → AULS → Antenna → Polarizer"
 ],
 "correct":"TCU → IFM1 → AULS → SSPA → Polarizer → Antenna",
 "explanation":"TCU generates telecommands. IFM1 performs IF modulation. AULS (Antenna Uplink Switch) routes the signal. SSPA amplifies the signal. Polarizer prepares the signal before radiation. Antenna transmits to the spacecraft."
@@ -157,8 +157,8 @@ questions = [
 "options":[
 "SLNA → SDC → ADLS → CORTEX",
 "SLNA → ADLS → SDC → CORTEX",
-"SDC → SLNA → ADLS",
-"SLNA → CORTEX"
+"SDC → SLNA → ADLS → CORTEX",
+"SLNA → CORTEX → ADLS → SDC"
 ],
 "correct":"SLNA → SDC → ADLS → CORTEX",
 "explanation":"SLNA amplifies the weak signal received from the spacecraft. SDC performs the signal downconversion. ADLS routes the signal to the correct processing chain. CORTEX processes telemetry."
@@ -312,20 +312,23 @@ questions = [
 
 TOTAL_QUESTIONS = len(questions)
 
-# ---------------- ROUTES ----------------
+# ---------------- HOME ----------------
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
 
+# ---------------- START EXAM ----------------
+
 @app.route("/start")
 def start():
 
-    # reset any previous session
     session.clear()
 
-    session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
+    shuffled = random.sample(questions, TOTAL_QUESTIONS)
+
+    session["questions"] = shuffled
     session["index"] = 0
     session["score"] = 0
     session["failed"] = []
@@ -333,51 +336,53 @@ def start():
     return redirect("/exam")
 
 
+# ---------------- EXAM ----------------
+
 @app.route("/exam", methods=["GET","POST"])
 def exam():
 
-    # prevent invalid sessions
     if "questions" not in session:
-        return redirect("/start")
+        return redirect("/")
+
+    index = session["index"]
+    question_list = session["questions"]
 
     if request.method == "POST":
 
-        choice = request.form["answer"]
-        q = session["questions"][session["index"]]
+        answer = request.form.get("answer")
+        current_q = question_list[index]
 
-        if choice == q["correct"]:
+        if answer == current_q["correct"]:
             session["score"] += 1
         else:
-            failed = session["failed"]
-
-            failed.append({
-                "question": q["question"],
-                "your": choice,
-                "correct": q["correct"],
-                "explanation": q["explanation"]
+            session["failed"].append({
+                "question": current_q["question"],
+                "your": answer,
+                "correct": current_q["correct"],
+                "explanation": current_q["explanation"]
             })
 
-            session["failed"] = failed
-
         session["index"] += 1
+        index = session["index"]
 
-    # exam finished
-    if session["index"] >= TOTAL_QUESTIONS:
-        return redirect("/result")
+        if index >= TOTAL_QUESTIONS:
+            return redirect("/result")
 
-    q = session["questions"][session["index"]]
+    current_q = question_list[index]
 
-    options = q["options"].copy()
+    options = current_q["options"].copy()
     random.shuffle(options)
 
     return render_template(
         "exam.html",
-        number=session["index"] + 1,
+        number=index + 1,
         total=TOTAL_QUESTIONS,
-        question=q["question"],
+        question=current_q["question"],
         options=options
     )
 
+
+# ---------------- RESULT ----------------
 
 @app.route("/result")
 def result():
@@ -399,7 +404,7 @@ def result():
     )
 
 
-# ---------------- SERVER START ----------------
+# ---------------- RUN ----------------
 
 if __name__ == "__main__":
     app.run()
