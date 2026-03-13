@@ -319,16 +319,13 @@ def index():
     return render_template("index.html")
 
 
-# ---------------- START EXAM ----------------
+# ---------------- START ----------------
 
 @app.route("/start")
 def start():
 
-    session.clear()
-
-    shuffled = random.sample(questions, TOTAL_QUESTIONS)
-
-    session["questions"] = shuffled
+    # initialize exam session
+    session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
     session["index"] = 0
     session["score"] = 0
     session["failed"] = []
@@ -341,43 +338,40 @@ def start():
 @app.route("/exam", methods=["GET","POST"])
 def exam():
 
-    if "questions" not in session:
+    # if exam not started
+    if "index" not in session:
         return redirect("/")
-
-    index = session["index"]
-    question_list = session["questions"]
 
     if request.method == "POST":
 
+        q = session["questions"][session["index"]]
         answer = request.form.get("answer")
-        current_q = question_list[index]
 
-        if answer == current_q["correct"]:
+        if answer == q["correct"]:
             session["score"] += 1
         else:
             session["failed"].append({
-                "question": current_q["question"],
+                "question": q["question"],
                 "your": answer,
-                "correct": current_q["correct"],
-                "explanation": current_q["explanation"]
+                "correct": q["correct"],
+                "explanation": q["explanation"]
             })
 
         session["index"] += 1
-        index = session["index"]
 
-        if index >= TOTAL_QUESTIONS:
+        if session["index"] >= TOTAL_QUESTIONS:
             return redirect("/result")
 
-    current_q = question_list[index]
+    q = session["questions"][session["index"]]
 
-    options = current_q["options"].copy()
+    options = q["options"].copy()
     random.shuffle(options)
 
     return render_template(
         "exam.html",
-        number=index + 1,
+        number=session["index"] + 1,
         total=TOTAL_QUESTIONS,
-        question=current_q["question"],
+        question=q["question"],
         options=options
     )
 
@@ -404,7 +398,7 @@ def result():
     )
 
 
-# ---------------- RUN ----------------
+# ---------------- SERVER ----------------
 
 if __name__ == "__main__":
     app.run()
