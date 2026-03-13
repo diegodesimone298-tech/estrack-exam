@@ -324,11 +324,14 @@ def index():
 @app.route("/start")
 def start():
 
+    # initialize exam session
     session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
     session["index"] = 0
     session["score"] = 0
     session["failed"] = []
 
+    # ensure session persists after redirect (Render fix)
+    session.permanent = True
     session.modified = True
 
     return redirect("/exam")
@@ -339,14 +342,14 @@ def start():
 @app.route("/exam", methods=["GET","POST"])
 def exam():
 
-    # if exam hasn't started
+    # if exam not started
     if "questions" not in session:
         return redirect("/")
 
     if request.method == "POST":
 
-        answer = request.form.get("answer")
         q = session["questions"][session["index"]]
+        answer = request.form.get("answer")
 
         if answer == q["correct"]:
             session["score"] += 1
@@ -400,7 +403,7 @@ def result():
     )
 
 
-# ---------------- SERVER ----------------
+# ---------------- RUN SERVER ----------------
 
 if __name__ == "__main__":
     app.run()
