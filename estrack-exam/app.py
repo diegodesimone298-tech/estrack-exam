@@ -329,6 +329,8 @@ def start():
     session["score"] = 0
     session["failed"] = []
 
+    session.modified = True
+
     return redirect("/exam")
 
 
