@@ -319,12 +319,11 @@ def index():
     return render_template("index.html")
 
 
-# ---------------- START ----------------
+# ---------------- START EXAM ----------------
 
 @app.route("/start")
 def start():
 
-    # initialize exam session
     session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
     session["index"] = 0
     session["score"] = 0
@@ -338,14 +337,14 @@ def start():
 @app.route("/exam", methods=["GET","POST"])
 def exam():
 
-    # if exam not started
-    if "index" not in session:
+    # if exam hasn't started
+    if "questions" not in session:
         return redirect("/")
 
     if request.method == "POST":
 
-        q = session["questions"][session["index"]]
         answer = request.form.get("answer")
+        q = session["questions"][session["index"]]
 
         if answer == q["correct"]:
             session["score"] += 1
@@ -359,8 +358,9 @@ def exam():
 
         session["index"] += 1
 
-        if session["index"] >= TOTAL_QUESTIONS:
-            return redirect("/result")
+    # exam finished
+    if session["index"] >= TOTAL_QUESTIONS:
+        return redirect("/result")
 
     q = session["questions"][session["index"]]
 
