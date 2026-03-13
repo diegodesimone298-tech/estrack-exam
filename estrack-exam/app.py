@@ -324,18 +324,14 @@ def index():
 @app.route("/start")
 def start():
 
-    # initialize exam session
+    session.clear()
+
     session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
     session["index"] = 0
     session["score"] = 0
     session["failed"] = []
 
-    # ensure session persists after redirect (Render fix)
-    session.permanent = True
-    session.modified = True
-
     return redirect("/exam")
-
 
 # ---------------- EXAM ----------------
 
