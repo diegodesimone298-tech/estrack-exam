@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, session
 import random
 from itsdangerous import BadSignature, URLSafeSerializer
 
@@ -348,6 +348,35 @@ def _decode_state(token):
     return data
 
 
+def _save_state_to_session(state):
+    # Lightweight fallback for clients/proxies that drop hidden token values.
+    session["exam_state"] = state
+
+
+def _load_state_from_session():
+    state = session.get("exam_state")
+    if not isinstance(state, dict):
+        return None
+
+    order = state.get("order")
+    idx = state.get("index")
+    score = state.get("score")
+    failed = state.get("failed")
+
+    if not isinstance(order, list) or len(order) != TOTAL_QUESTIONS:
+        return None
+    if sorted(order) != list(range(TOTAL_QUESTIONS)):
+        return None
+    if not isinstance(idx, int) or idx < 0 or idx > TOTAL_QUESTIONS:
+        return None
+    if not isinstance(score, int) or score < 0 or score > TOTAL_QUESTIONS:
+        return None
+    if not isinstance(failed, list):
+        return None
+
+    return state
+
+
 def _expand_failed(failed_compact):
     failed = []
     for item in failed_compact:
@@ -432,7 +461,9 @@ def index():
 
 
 def _advance_exam(token, answer):
-    state = _decode_state(token)
+    state = _decode_state(token) if token else None
+    if state is None:
+        state = _load_state_from_session()
     if state is None or state["index"] >= TOTAL_QUESTIONS:
         return redirect("/start")
 
@@ -445,6 +476,7 @@ def _advance_exam(token, answer):
         state["failed"].append({"question_idx": q_idx, "your": answer})
 
     state["index"] += 1
+    _save_state_to_session(state)
 
     if state["index"] >= TOTAL_QUESTIONS:
         return _render_result_from_state(state)
@@ -456,7 +488,7 @@ def _advance_exam(token, answer):
 
 @app.route("/start", methods=["GET", "POST"])
 def start():
-    # Support templates that post answers back to /start.
+    # Support legacy templates that POST answers back to /start (no explicit action).
     if request.method == "POST":
         token = request.form.get("state_token") or request.args.get("state_token", "")
         answer = request.form.get("answer") or request.args.get("answer")
@@ -468,6 +500,7 @@ def start():
         "score": 0,
         "failed": [],
     }
+    _save_state_to_session(state)
     return _render_exam_from_state(state)
 
 
@@ -478,10 +511,7 @@ def exam():
     token = request.form.get("state_token") or request.args.get("state_token", "")
     answer = request.form.get("answer") or request.args.get("answer")
 
-    # Accept both GET and POST so accidental GET submissions don't reset flow.
-    if not token:
-        return redirect("/start")
-
+    # Accept both GET and POST so accidental GET form submissions do not reset flow.
     return _advance_exam(token, answer)
 
 
@@ -490,7 +520,9 @@ def exam():
 @app.route("/result", methods=["POST"])
 def result():
     token = request.form.get("result_token", "")
-    state = _decode_state(token)
+    state = _decode_state(token) if token else None
+    if state is None:
+        state = _load_state_from_session()
     if state is None or state["index"] < TOTAL_QUESTIONS:
         return redirect("/")
 
@@ -498,6 +530,8 @@ def result():
     _save_leaderboard_entry(name, state["score"])
     return _render_result_from_state(state)
 
+
+# ---------------- RUN SERVER ----------------
 
 if __name__ == "__main__":
     app.run()
