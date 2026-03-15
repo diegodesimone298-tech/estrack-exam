@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect
 import random
 
 app = Flask(__name__)
@@ -312,6 +312,119 @@ questions = [
 
 TOTAL_QUESTIONS = len(questions)
 
+from itsdangerous import BadSignature, URLSafeSerializer
+
+exam_state_serializer = URLSafeSerializer(app.secret_key, salt="exam-state")
+
+
+def _encode_state(state):
+    return exam_state_serializer.dumps(state)
+
+
+def _decode_state(token):
+    try:
+        data = exam_state_serializer.loads(token)
+    except BadSignature:
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    order = data.get("order")
+    idx = data.get("index")
+    score = data.get("score")
+    failed = data.get("failed")
+
+    if not isinstance(order, list) or len(order) != TOTAL_QUESTIONS:
+        return None
+    if sorted(order) != list(range(TOTAL_QUESTIONS)):
+        return None
+    if not isinstance(idx, int) or idx < 0 or idx > TOTAL_QUESTIONS:
+        return None
+    if not isinstance(score, int) or score < 0 or score > TOTAL_QUESTIONS:
+        return None
+    if not isinstance(failed, list):
+        return None
+
+    return data
+
+
+def _expand_failed(failed_compact):
+    failed = []
+    for item in failed_compact:
+        q_idx = item.get("question_idx")
+        if not isinstance(q_idx, int) or not (0 <= q_idx < TOTAL_QUESTIONS):
+            continue
+        q = questions[q_idx]
+        failed.append({
+            "question": q["question"],
+            "your": item.get("your"),
+            "correct": q["correct"],
+            "explanation": q["explanation"],
+        })
+    return failed
+
+
+def _load_leaderboard():
+    leaderboard = []
+    try:
+        with open("leaderboard.txt", "r", encoding="utf-8") as f:
+            for line in f:
+                if "|" not in line:
+                    continue
+                name, score_str = line.rstrip("\n").split("|", 1)
+                try:
+                    score = int(score_str)
+                except ValueError:
+                    continue
+                leaderboard.append((name, score))
+    except FileNotFoundError:
+        return []
+
+    leaderboard.sort(key=lambda item: item[1], reverse=True)
+    return leaderboard[:20]
+
+
+def _save_leaderboard_entry(name, score):
+    safe_name = " ".join((name or "").strip().split())[:50]
+    if not safe_name:
+        return
+    with open("leaderboard.txt", "a", encoding="utf-8") as f:
+        f.write(f"{safe_name}|{score}\n")
+
+
+def _render_exam_from_state(state):
+    q_idx = state["order"][state["index"]]
+    q = questions[q_idx]
+    options = q["options"].copy()
+    random.shuffle(options)
+
+    return render_template(
+        "exam.html",
+        state_token=_encode_state(state),
+        number=state["index"] + 1,
+        total=TOTAL_QUESTIONS,
+        question=q["question"],
+        options=options,
+    )
+
+
+def _render_result_from_state(state):
+    score = state["score"]
+    failed = _expand_failed(state["failed"])
+    passed = score / TOTAL_QUESTIONS >= PASS_THRESHOLD
+
+    return render_template(
+        "result.html",
+        result_token=_encode_state(state),
+        score=score,
+        total=TOTAL_QUESTIONS,
+        passed=passed,
+        failed=failed,
+        leaderboard=_load_leaderboard(),
+    )
+
+
 # ---------------- HOME ----------------
 
 @app.route("/")
@@ -323,80 +436,53 @@ def index():
 
 @app.route("/start")
 def start():
+    state = {
+        "order": random.sample(range(TOTAL_QUESTIONS), TOTAL_QUESTIONS),
+        "index": 0,
+        "score": 0,
+        "failed": [],
+    }
+    return _render_exam_from_state(state)
 
-    session.clear()
-
-    session["questions"] = random.sample(questions, TOTAL_QUESTIONS)
-    session["index"] = 0
-    session["score"] = 0
-    session["failed"] = []
-
-    return redirect("/exam")
 
 # ---------------- EXAM ----------------
 
-@app.route("/exam", methods=["GET","POST"])
+@app.route("/exam", methods=["POST"])
 def exam():
-
-    # if exam not started
-    if "questions" not in session:
+    token = request.form.get("state_token", "")
+    state = _decode_state(token)
+    if state is None or state["index"] >= TOTAL_QUESTIONS:
         return redirect("/")
 
-    if request.method == "POST":
+    q_idx = state["order"][state["index"]]
+    q = questions[q_idx]
+    answer = request.form.get("answer")
 
-        q = session["questions"][session["index"]]
-        answer = request.form.get("answer")
+    if answer == q["correct"]:
+        state["score"] += 1
+    else:
+        state["failed"].append({"question_idx": q_idx, "your": answer})
 
-        if answer == q["correct"]:
-            session["score"] += 1
-        else:
-            session["failed"].append({
-                "question": q["question"],
-                "your": answer,
-                "correct": q["correct"],
-                "explanation": q["explanation"]
-            })
+    state["index"] += 1
 
-        session["index"] += 1
+    if state["index"] >= TOTAL_QUESTIONS:
+        return _render_result_from_state(state)
 
-    # exam finished
-    if session["index"] >= TOTAL_QUESTIONS:
-        return redirect("/result")
-
-    q = session["questions"][session["index"]]
-
-    options = q["options"].copy()
-    random.shuffle(options)
-
-    return render_template(
-        "exam.html",
-        number=session["index"] + 1,
-        total=TOTAL_QUESTIONS,
-        question=q["question"],
-        options=options
-    )
+    return _render_exam_from_state(state)
 
 
 # ---------------- RESULT ----------------
 
-@app.route("/result")
+@app.route("/result", methods=["POST"])
 def result():
-
-    if "score" not in session:
+    token = request.form.get("result_token", "")
+    state = _decode_state(token)
+    if state is None or state["index"] < TOTAL_QUESTIONS:
         return redirect("/")
 
-    score = session["score"]
-    failed = session["failed"]
-
-    passed = score / TOTAL_QUESTIONS >= PASS_THRESHOLD
-
-    return render_template(
-        "result.html",
-        score=score,
-        total=TOTAL_QUESTIONS,
-        passed=passed,
-        failed=failed
-    )
+    name = request.form.get("name", "")
+    _save_leaderboard_entry(name, state["score"])
+    return _render_result_from_state(state)
 
 
 # ---------------- RUN SERVER ----------------
