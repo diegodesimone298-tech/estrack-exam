@@ -424,14 +424,20 @@ def _render_result_from_state(state):
     )
 
 
-def _advance_exam(token):
+# ---------------- HOME ----------------
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+def _advance_exam(token, answer):
     state = _decode_state(token)
     if state is None or state["index"] >= TOTAL_QUESTIONS:
-        return redirect("/")
+        return redirect("/start")
 
     q_idx = state["order"][state["index"]]
     q = questions[q_idx]
-    answer = request.form.get("answer")
 
     if answer == q["correct"]:
         state["score"] += 1
@@ -446,20 +452,15 @@ def _advance_exam(token):
     return _render_exam_from_state(state)
 
 
-# ---------------- HOME ----------------
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
 # ---------------- START EXAM ----------------
-# Accepts POST too, so legacy templates that post back to /start won't 405.
 
 @app.route("/start", methods=["GET", "POST"])
 def start():
+    # Support templates that post answers back to /start.
     if request.method == "POST":
-        return _advance_exam(request.form.get("state_token", ""))
+        token = request.form.get("state_token") or request.args.get("state_token", "")
+        answer = request.form.get("answer") or request.args.get("answer")
+        return _advance_exam(token, answer)
 
     state = {
         "order": random.sample(range(TOTAL_QUESTIONS), TOTAL_QUESTIONS),
@@ -474,9 +475,14 @@ def start():
 
 @app.route("/exam", methods=["GET", "POST"])
 def exam():
-    if request.method == "GET":
+    token = request.form.get("state_token") or request.args.get("state_token", "")
+    answer = request.form.get("answer") or request.args.get("answer")
+
+    # Accept both GET and POST so accidental GET submissions don't reset flow.
+    if not token:
         return redirect("/start")
-    return _advance_exam(request.form.get("state_token", ""))
+
+    return _advance_exam(token, answer)
 
 
 # ---------------- RESULT ----------------
