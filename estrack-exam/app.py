@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect
 import random
+from itsdangerous import BadSignature, URLSafeSerializer
 
 app = Flask(__name__)
 app.secret_key = "estrack_exam_secret"
@@ -312,8 +313,6 @@ questions = [
 
 TOTAL_QUESTIONS = len(questions)
 
-from itsdangerous import BadSignature, URLSafeSerializer
-
 exam_state_serializer = URLSafeSerializer(app.secret_key, salt="exam-state")
 
 
@@ -425,31 +424,7 @@ def _render_result_from_state(state):
     )
 
 
-# ---------------- HOME ----------------
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-# ---------------- START EXAM ----------------
-
-@app.route("/start")
-def start():
-    state = {
-        "order": random.sample(range(TOTAL_QUESTIONS), TOTAL_QUESTIONS),
-        "index": 0,
-        "score": 0,
-        "failed": [],
-    }
-    return _render_exam_from_state(state)
-
-
-# ---------------- EXAM ----------------
-
-@app.route("/exam", methods=["POST"])
-def exam():
-    token = request.form.get("state_token", "")
+def _advance_exam(token):
     state = _decode_state(token)
     if state is None or state["index"] >= TOTAL_QUESTIONS:
         return redirect("/")
@@ -471,6 +446,39 @@ def exam():
     return _render_exam_from_state(state)
 
 
+# ---------------- HOME ----------------
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+# ---------------- START EXAM ----------------
+# Accepts POST too, so legacy templates that post back to /start won't 405.
+
+@app.route("/start", methods=["GET", "POST"])
+def start():
+    if request.method == "POST":
+        return _advance_exam(request.form.get("state_token", ""))
+
+    state = {
+        "order": random.sample(range(TOTAL_QUESTIONS), TOTAL_QUESTIONS),
+        "index": 0,
+        "score": 0,
+        "failed": [],
+    }
+    return _render_exam_from_state(state)
+
+
+# ---------------- EXAM ----------------
+
+@app.route("/exam", methods=["GET", "POST"])
+def exam():
+    if request.method == "GET":
+        return redirect("/start")
+    return _advance_exam(request.form.get("state_token", ""))
+
+
 # ---------------- RESULT ----------------
 
 @app.route("/result", methods=["POST"])
@@ -484,8 +492,6 @@ def result():
     _save_leaderboard_entry(name, state["score"])
     return _render_result_from_state(state)
 
-
-# ---------------- RUN SERVER ----------------
 
 if __name__ == "__main__":
     app.run()
