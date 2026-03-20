@@ -14,11 +14,11 @@ questions = [
 "options":[
 "ssh -x stc@sce25 startupws.sh",
 "ssh -x stc@sce25 > startupws.sh",
-"ssh stc@sce25 -x > startupws.sh",
+"ssh stc@sce25 > startupws.sh -x",
 "startupws.sh | ssh -x stc@sce25"
 ],
 "correct":"ssh -x stc@sce25 > startupws.sh",
-"explanation":"This is the only correct syntax."
+"explanation":"This is the only correct syntax among the provided options."
 },
 
 {
@@ -58,7 +58,7 @@ questions = [
 },
 
 {
-"question":"Carrier Loop Level (025) most directly reflects:",
+"question":"Carrier Loop Level (used in chart configuration) most directly reflects:",
 "options":[
 "Signal-to-noise ratio",
 "Received signal power",
@@ -70,7 +70,7 @@ questions = [
 },
 
 {
-"question":"Estimated Es/No (085) measures:",
+"question":"Estimated Es/No (used in chart configuration) measures:",
 "options":[
 "Carrier frequency offset",
 "Signal quality",
@@ -82,7 +82,7 @@ questions = [
 },
 
 {
-"question":"Stable AGC with falling Es/No indicates:",
+"question":"Stable AGC with increasing Es/No indicates:",
 "options":[
 "Carrier loss",
 "Signal quality degradation",
@@ -94,7 +94,7 @@ questions = [
 },
 
 {
-"question":"Actual Intermediate Frequency (004) displays:",
+"question":"Actual Intermediate Frequency (used in chart configuration) displays:",
 "options":[
 "Modulated carrier",
 "Unmodulated carrier at 230 MHz",
@@ -130,7 +130,7 @@ questions = [
 },
 
 {
-"question":"Only one spacecraft visible during MSPA support. First action:",
+"question":"Only one spacecraft visible in the spectrum analyser during MSPA support. First action:",
 "options":[
 "Change SPAN bandwidth",
 "Change ADLS input",
@@ -204,8 +204,8 @@ questions = [
 {
 "question":"Tone ranging operates with:",
 "options":[
-"GMD only",
-"RCD",
+"GMD (suppressed carrier)",
+"RCD (remnant carrier)",
 "TMUA",
 "ADLS"
 ],
@@ -274,15 +274,15 @@ questions = [
 },
 
 {
-"question":"Telemetry intermittent and DMD repulse fails. Next action:",
+"question":"Telemetry intermittent and DMD repulse fails. Next actions:",
 "options":[
-"Re-sweep",
-"Recalculate downlink frequency",
-"Increase power",
-"Swap chain"
+"Stop uplink/start uplink + re-sweep + recalculate uplink frequency",
+"Recalculate downlink frequency + check TM rate + stop track/start track",
+"Increase power + repulse decoder + check doppler compensation",
+"Swap chain + reconfigure station manually"
 ],
-"correct":"Recalculate downlink frequency",
-"explanation":"If repulsing the DMD doesn't restore lock, the demodulator might be configured with an outdated downlink frequency due to Doppler shift or spacecraft configuration change. In that case recalculate the downlink frequency. How to: Jobs → New Frequency Plan."
+"correct":"Recalculate downlink frequency + check TM rate + stop track/start track",
+"explanation":"If repulsing the DMD doesn't restore lock, the demodulator might be configured with an outdated downlink frequency (How to: Jobs → New Frequency Plan); also check that S/C TM rate matches G/S TM rate (call mission on the voice loop); the job Start Track automatically recalculates the downlink frequency"
 },
 
 {
