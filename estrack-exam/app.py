@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session
 import random
+from pathlib import Path
 from itsdangerous import BadSignature, URLSafeSerializer
 
 app = Flask(__name__)
@@ -10,15 +11,15 @@ PASS_THRESHOLD = 0.8
 questions = [
 
 {
-"question":"The correct workstation startup command is:",
+"question":"During EXMO support, which value continuously changes on the mimic due to ramping:",
 "options":[
-"ssh -x stc@sce25 startupws.sh",
-"ssh -x stc@sce25 > startupws.sh",
-"ssh stc@sce25 > startupws.sh -x",
-"startupws.sh | ssh -x stc@sce25"
+"BLF in GSRC pages",
+"Measured BLF",
+"Uplink frequency",
+"Actual radiated frequency"
 ],
-"correct":"ssh -x stc@sce25 > startupws.sh",
-"explanation":"This is the only correct syntax among the provided options."
+"correct":"Actual radiated frequency",
+"explanation":"BLF in GSRC shows the frequency the S/C is nominally configured for (can't be up to date 24/7); measured BLF is the current frequency the S/C is expecting considering doppler shift; U/L frequency reflects the F at start uplink time (after initial doppler compensation); Actual radiated frequency shows the real time F radiated by the G/S (since ramping means continuously adjusting the F due to doppler shift, this value will change accordingly)."
 },
 
 {
@@ -130,15 +131,15 @@ questions = [
 },
 
 {
-"question":"Only one spacecraft visible in the spectrum analyser during MSPA support. First action:",
+"question":"Only one spacecraft visible in the spectrum analyser during MSPA support. Signal is expected from both according to PPCP. Solution:",
 "options":[
 "Change SPAN bandwidth",
 "Change ADLS input",
-"Check mission schedule and PPCP",
+"Check downlink frequency",
 "Enable coherency"
 ],
-"correct":"Check mission schedule and PPCP",
-"explanation":"During Multiple Spacecraft Per Aperture support, the station is configured to receive telemetry for a maximum of 4 spacecraft, however we might start tracking one spacecraft hours later than another spacecraft. Always check PPCP."
+"correct":"Change SPAN bandwidth",
+"explanation":"For EXMO and MEX support (the only MSPA support at the moment), in oder to see both S/C you need at least 15 MHz of bandwidth"
 },
 
 {
@@ -250,7 +251,7 @@ questions = [
 },
 
 {
-"question":"Re-sweep is more justified when:",
+"question":"Re-sweep is more justified is one of the following cases:",
 "options":[
 "Deep space apogee",
 "Supporting polar missions with short EPD",
@@ -314,6 +315,7 @@ questions = [
 TOTAL_QUESTIONS = len(questions)
 
 exam_state_serializer = URLSafeSerializer(app.secret_key, salt="exam-state")
+LEADERBOARD_FILE = Path(__file__).with_name("leaderboard.txt")
 
 
 def _encode_state(state):
@@ -396,15 +398,28 @@ def _expand_failed(failed_compact):
 def _load_leaderboard():
     leaderboard = []
     try:
-        with open("leaderboard.txt", "r", encoding="utf-8") as f:
+        with LEADERBOARD_FILE.open("r", encoding="utf-8") as f:
             for line in f:
-                if "|" not in line:
+                raw = line.rstrip("\n")
+                if not raw:
                     continue
-                name, score_str = line.rstrip("\n").split("|", 1)
+
+                # Current format: name|score
+                if "|" in raw:
+                    name, score_str = raw.split("|", 1)
+                # Legacy format support: Name — 20 / 25
+                elif "—" in raw and "/" in raw:
+                    name, score_str = raw.split("—", 1)
+                    score_str = score_str.split("/", 1)[0]
+                else:
+                    continue
+
+                name = name.strip()
                 try:
-                    score = int(score_str)
+                    score = int(score_str.strip())
                 except ValueError:
                     continue
+
                 leaderboard.append((name, score))
     except FileNotFoundError:
         return []
@@ -417,7 +432,7 @@ def _save_leaderboard_entry(name, score):
     safe_name = " ".join((name or "").strip().split())[:50]
     if not safe_name:
         return
-    with open("leaderboard.txt", "a", encoding="utf-8") as f:
+    with LEADERBOARD_FILE.open("a", encoding="utf-8") as f:
         f.write(f"{safe_name}|{score}\n")
 
 
@@ -510,7 +525,6 @@ def start():
 def exam():
     token = request.form.get("state_token") or request.args.get("state_token", "")
     answer = request.form.get("answer") or request.args.get("answer")
-
     # Accept both GET and POST so accidental GET form submissions do not reset flow.
     return _advance_exam(token, answer)
 
@@ -530,8 +544,6 @@ def result():
     _save_leaderboard_entry(name, state["score"])
     return _render_result_from_state(state)
 
-
-# ---------------- RUN SERVER ----------------
 
 if __name__ == "__main__":
     app.run()
