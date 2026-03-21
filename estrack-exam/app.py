@@ -183,7 +183,7 @@ questions = [
 "options":[
 "RAU",
 "TMUA",
-"DCU diversity combiner",
+"DCU (diversity combiner unit)",
 "TMUB"
 ],
 "correct":"DCU diversity combiner",
@@ -217,8 +217,8 @@ questions = [
 {
 "question":"Pseudo-noise ranging operates with:",
 "options":[
-"RCD only",
-"GMD only",
+"RCD (remnant carrier)",
+"GMD (suppressed carrier)",
 "RCD and GMD",
 "RAU"
 ],
@@ -243,10 +243,10 @@ questions = [
 "options":[
 "Re-sweep",
 "Increase power",
-"Ask mission to repulse DMD",
-"Switch to coherent"
+"Repulse DMD",
+"Stop uplink + Start uplink"
 ],
-"correct":"Ask mission to repulse DMD",
+"correct":"Repulse DMD",
 "explanation":"If telemetry degrades but the carrier remains, the demodulator may require a repulse to recover the lock. Additionally, you can repulse the Decoder as well, but only after the DMD has locked."
 },
 
@@ -254,11 +254,11 @@ questions = [
 "question":"Re-sweep is more justified is one of the following cases:",
 "options":[
 "Deep space apogee",
-"Supporting polar missions with short EPD",
+"Supporting polar missions",
 "During coherency",
 "During ranging"
 ],
-"correct":"Supporting polar missions with short EPD",
+"correct":"Supporting polar missions",
 "explanation":"Re-Sweep takes as long as the propagation delay to be confirmed (signal must reach the spacecraft and come back). For deep space support the EPD can be 15 minutes up to 1 hour, which would waste a large portion of the pass. Polar missions are much closer and confirmation takes only seconds."
 },
 
