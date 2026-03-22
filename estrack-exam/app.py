@@ -186,7 +186,7 @@ questions = [
 "DCU (diversity combiner unit)",
 "TMUB"
 ],
-"correct":"DCU diversity combiner",
+"correct":"DCU (diversity combiner unit)",
 "explanation":"IFR2 and IFR3 correspond to the DCU (Diversity Combiner Unit) which combines TMUA and TMUB chains. TMUA = low bit rate. TMUB = high bit rate."
 },
 
@@ -210,7 +210,7 @@ questions = [
 "TMUA",
 "ADLS"
 ],
-"correct":"RCD",
+"correct":"RCD (remnant carrier)",
 "explanation":"RCD stands for Remnant Carrier. Tone ranging works only with Remnant Carrier."
 },
 
